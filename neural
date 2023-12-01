@@ -1,0 +1,193 @@
+// 一个简单的神经网络模型，用 C++ 语言编写
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <random>
+
+using namespace std;
+
+// 定义一个激活函数，这里使用 sigmoid 函数
+double sigmoid(double x) {
+    return 1.0 / (1.0 + exp(-x));
+}
+
+// 定义一个神经元类，它有一个输入向量，一个权重向量，一个偏置值，和一个输出值
+class Neuron {
+public:
+    // 构造函数，初始化输入向量，权重向量，偏置值，和输出值
+    Neuron(int input_size) {
+        // 生成一个随机数引擎，用于初始化权重向量和偏置值
+        random_device rd;
+        mt19937 gen(rd());
+        uniform_real_distribution<> dis(-1.0, 1.0);
+
+        // 初始化输入向量，大小为 input_size
+        input = vector<double>(input_size, 0.0);
+
+        // 初始化权重向量，大小为 input_size，每个元素为 [-1, 1] 之间的随机数
+        weight = vector<double>(input_size, 0.0);
+        for (int i = 0; i < input_size; i++) {
+            weight[i] = dis(gen);
+        }
+
+        // 初始化偏置值，为 [-1, 1] 之间的随机数
+        bias = dis(gen);
+
+        // 初始化输出值，为 0
+        output = 0.0;
+    }
+
+    // 计算输出值的函数，根据输入向量，权重向量，偏置值，和激活函数
+    void feedforward() {
+        // 计算输入向量和权重向量的点积
+        double sum = 0.0;
+        for (int i = 0; i < input.size(); i++) {
+            sum += input[i] * weight[i];
+        }
+
+        // 加上偏置值
+        sum += bias;
+
+        // 应用激活函数，得到输出值
+        output = sigmoid(sum);
+    }
+
+    // 设置输入向量的函数，根据给定的向量
+    void set_input(const vector<double>& x) {
+        // 检查给定的向量的大小是否和输入向量的大小相同
+        if (x.size() != input.size()) {
+            cerr << "Input size mismatch!" << endl;
+            return;
+        }
+
+        // 复制给定的向量到输入向量
+        for (int i = 0; i < input.size(); i++) {
+            input[i] = x[i];
+        }
+    }
+
+    // 获取输出值的函数，返回输出值
+    double get_output() {
+        return output;
+    }
+
+private:
+    // 输入向量
+    vector<double> input;
+
+    // 权重向量
+    vector<double> weight;
+
+    // 偏置值
+    double bias;
+
+    // 输出值
+    double output;
+};
+
+// 定义一个神经网络类，它有一个输入层，一个隐藏层，和一个输出层
+class NeuralNetwork {
+public:
+    // 构造函数，初始化输入层，隐藏层，和输出层
+    NeuralNetwork(int input_size, int hidden_size, int output_size) {
+        // 初始化输入层，大小为 input_size
+        input_layer = vector<double>(input_size, 0.0);
+
+        // 初始化隐藏层，大小为 hidden_size，每个元素为一个神经元对象，输入大小为 input_size
+        hidden_layer = vector<Neuron>(hidden_size, Neuron(input_size));
+
+        // 初始化输出层，大小为 output_size，每个元素为一个神经元对象，输入大小为 hidden_size
+        output_layer = vector<Neuron>(output_size, Neuron(hidden_size));
+    }
+
+    // 计算输出层的函数，根据输入层，隐藏层，和输出层
+    void feedforward() {
+        // 遍历隐藏层的每个神经元
+        for (int i = 0; i < hidden_layer.size(); i++) {
+            // 设置神经元的输入向量为输入层的值
+            hidden_layer[i].set_input(input_layer);
+
+            // 计算神经元的输出值
+            hidden_layer[i].feedforward();
+        }
+
+        // 遍历输出层的每个神经元
+        for (int i = 0; i < output_layer.size(); i++) {
+            // 创建一个向量，用于存储隐藏层的输出值
+            vector<double> hidden_output(hidden_layer.size(), 0.0);
+
+            // 遍历隐藏层的每个神经元，将其输出值复制到向量中
+            for (int j = 0; j < hidden_layer.size(); j++) {
+                hidden_output[j] = hidden_layer[j].get_output();
+            }
+
+            // 设置神经元的输入向量为隐藏层的输出值
+            output_layer[i].set_input(hidden_output);
+
+            // 计算神经元的输出值
+            output_layer[i].feedforward();
+        }
+    }
+
+    // 设置输入层的函数，根据给定的向量
+    void set_input(const vector<double>& x) {
+        // 检查给定的向量的大小是否和输入层的大小相同
+        if (x.size() != input_layer.size()) {
+            cerr << "Input size mismatch!" << endl;
+            return;
+        }
+
+        // 复制给定的向量到输入层
+        for (int i = 0; i < input_layer.size(); i++) {
+            input_layer[i] = x[i];
+        }
+    }
+
+    // 获取输出层的函数，返回一个向量，包含输出层的每个神经元的输出值
+    vector<double> get_output() {
+        // 创建一个向量，用于存储输出层的输出值
+        vector<double> output(output_layer.size(), 0.0);
+
+        // 遍历输出层的每个神经元，将其输出值复制到向量中
+        for (int i = 0; i < output_layer.size(); i++) {
+            output[i] = output_layer[i].get_output();
+        }
+
+        // 返回向量
+        return output;
+    }
+
+private:
+    // 输入层
+    vector<double> input_layer;
+
+    // 隐藏层
+    vector<Neuron> hidden_layer;
+
+    // 输出层
+    vector<Neuron> output_layer;
+};
+
+// 主函数，用于测试神经网络
+int main() {
+    // 创建一个神经网络对象，输入大小为 2，隐藏大小为 3，输出大小为 1
+    NeuralNetwork nn(2, 3, 1);
+
+    // 创建一个输入向量，用于测试神经网络
+    vector<double> x = {0.5, 0.7};
+
+    // 设置神经网络的输入层为输入向量
+    nn.set_input(x);
+
+    // 计算神经网络的输出层
+    nn.feedforward();
+
+    // 获取神经网络的输出层
+    vector<double> y = nn.get_output();
+
+    // 打印输出层的值
+    cout << "Output: " << y[0] << endl;
+
+    // 返回 0，表示程序正常结束
+    return 0;
+}
